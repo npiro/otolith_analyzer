@@ -96,3 +96,17 @@ def plot_labeled_dataset(dataset, plot_widget):
 
 
     #plot_widget.plot(t,y)
+
+def plot_labeled_dataset_field(original_dataset, labels, field, plot_widget):
+
+    y = original_dataset[field]
+    t = original_dataset["time"]
+    c = labels
+
+    plt = plot_widget
+
+    plt.clear()
+    # draw a scatter plot with selected points in yellow
+    cmap = {0: (0, 0, 200), 1: (255, 0, 0), 2: (0, 255, 0)}
+    brushes = [pg.mkBrush(cmap[x]) for x in c]
+    plt.plot(t, y, pen=None, symbol='o', symbolBrush=brushes)

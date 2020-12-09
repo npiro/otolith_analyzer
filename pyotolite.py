@@ -8,7 +8,7 @@ import pyqtgraph as pg
 
 import sys, os
 from datasets import Datasets
-from gui import PandasModel, TableModel, get_checked_items, plot_labeled_dataset
+from gui import PandasModel, TableModel, get_checked_items, plot_labeled_dataset, plot_labeled_dataset_field
 from labelling import predict_labels_on_selected_datasets
 
 def load_dir_dialog(widget, text_box):
@@ -71,6 +71,9 @@ class Ui(QtWidgets.QMainWindow):
         self.label_data_but.clicked.connect(self.label_data_func)
         self.load_prefix_tables()
         self.datasets = Datasets()
+
+        self.labeled_dataset = None
+        self.original_dataset = None
 
 
     def load_data_func(self):
@@ -173,9 +176,25 @@ class Ui(QtWidgets.QMainWindow):
             labeled_files = {f: d for s in labeled_datasets.keys() for f, d in labeled_datasets[s].items()}
             if filename not in labeled_files.keys():
                 raise ValueError(f"File {filename} does not exist.\n Existing files are {labeled_files.keys()}")
-            dataset = labeled_files[filename]
+            self.labeled_dataset = labeled_files[filename]
 
-            plot_labeled_dataset(dataset, self.labeledPlotWidget)
+            self.original_dataset = self.datasets.data_files[filename]
+            fields = self.original_dataset.columns
+            tree = self.plotFieldTreeWidget
+            tree.clear()
+            for f in fields:
+                item = QTreeWidgetItem(tree)
+                item.setText(0, f)
+
+            plot_labeled_dataset(self.labeled_dataset, self.labeledPlotWidget)
+            self.plotFieldTreeWidget.doubleClicked.connect(self.onPlotFieldTreeDoubleClick)
+
+    def onPlotFieldTreeDoubleClick(self, index):
+        if self.labeled_dataset is not None:
+            item = self.labeledSessionTreeWidget.selectedIndexes()[0]
+            field = index.data()
+            labels = self.labeled_dataset[1].argmax(axis=2)[0,:]
+            plot_labeled_dataset_field(self.original_dataset, labels, field, self.labeledPlotWidget)
 
     def get_prefixes_from_tables(self):
 
