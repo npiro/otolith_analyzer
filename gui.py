@@ -50,8 +50,19 @@ class PandasModel(QtCore.QAbstractTableModel):
             return self._data.columns[col]
         return None
 
-
 def get_checked_items(treeWidget):
+    checked = []
+    root = treeWidget.invisibleRootItem()
+    signal_count = root.childCount()
+
+    for i in range(signal_count):
+        child = root.child(i)
+        if child.checkState(0) == QtCore.Qt.Checked:
+            checked.append(child.text(0))
+
+    return checked
+
+def get_checked_items_in_subtree(treeWidget):
     checked = dict()
     root = treeWidget.invisibleRootItem()
     signal_count = root.childCount()
@@ -85,6 +96,19 @@ def plot_labeled_dataset(dataset, plot_widget):
     brushes = [pg.mkBrush(cmap[x]) for x in c]
     plt.plot(t, y, pen=None, symbol='o', symbolBrush=brushes)
 
+    t0 = [tt for tt, cc in zip(t, c) if cc == 0]
+    t1 = [tt for tt, cc in zip(t, c) if cc == 1]
+    t2 = [tt for tt, cc in zip(t, c) if cc == 2]
+    b0 = [bb for bb, cc in zip(brushes, c) if cc == 0]
+    b1 = [bb for bb, cc in zip(brushes, c) if cc == 1]
+    b2 = [bb for bb, cc in zip(brushes, c) if cc == 2]
+    y0 = [yy for cc, yy in zip(c, y) if cc == 0]
+    y1 = [yy for cc, yy in zip(c, y) if cc == 1]
+    y2 = [yy for cc, yy in zip(c, y) if cc == 2]
+    #plt.plot(t0, y0, symbol='o', symbolBrush='r')
+    #plt.plot(t1, y1, symbol='x', symbolBrush='g')
+    #plt.plot(t2, y2, symbol='+', symbolBrush='b')
+
     # draw vertical ticks marking the position of selected points
     #tick_x = np.array(t)[c]
     #ticks = pg.VTickGroup(tick_x, yrange=[0, 0.1], pen={'color': 'w', 'width': 5})
@@ -109,4 +133,17 @@ def plot_labeled_dataset_field(original_dataset, labels, field, plot_widget):
     # draw a scatter plot with selected points in yellow
     cmap = {0: (0, 0, 200), 1: (255, 0, 0), 2: (0, 255, 0)}
     brushes = [pg.mkBrush(cmap[x]) for x in c]
-    plt.plot(t, y, pen=None, symbol='o', symbolBrush=brushes)
+
+    #t0 = [tt for tt, cc in zip(t, c) if cc == 0]
+    #t1 = [tt for tt, cc in zip(t, c) if cc == 1]
+    #t2 = [tt for tt, cc in zip(t, c) if cc == 2]
+    #b0 = [bb for bb, cc in zip(brushes, c) if cc == 0]
+    #b1 = [bb for bb, cc in zip(brushes, c) if cc == 1]
+    #b2 = [bb for bb, cc in zip(brushes, c) if cc == 2]
+    #y0 = [yy for cc, yy in zip(c, y) if cc == 0]
+    #y1 = [yy for cc, yy in zip(c, y) if cc == 1]
+    #y2 = [yy for cc, yy in zip(c, y) if cc == 2]
+    #plt.plot(t0, y0, symbol='o', symbolBrush='r')
+    #plt.plot(t1, y1, symbol='x', symbolBrush='g')
+    #plt.plot(t2, y2, symbol='+', symbolBrush='b')
+    plt.plot(t, y, pen='k', symbol='o', symbolBrush=brushes)

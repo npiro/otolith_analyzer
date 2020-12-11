@@ -4,15 +4,15 @@ from scipy import interpolate
 import tensorflow as tf
 import tensorflow.keras
 
-def predict_labels_on_selected_datasets(datasets, selected_datasets, model_path):
-    model = load_model(model_path)
+def predict_labels_on_selected_datasets(datasets, selected_datasets, selected_elements, model):
     selected_datasets = {s:
                             {f:datasets.get_dataset(f) for f in selected_datasets[s]}
                              for s in selected_datasets.keys() if len(selected_datasets[s]) > 0
                          }
-
+    fields = ["time"]+selected_elements
     labeled_datasets = {s:
-                            {f: (prepare_input_data(selected_datasets[s][f]), predict(selected_datasets[s][f], model)) for f in selected_datasets[s]}
+                            {f: (prepare_input_data(selected_datasets[s][f].loc[:,fields]),
+                                 predict(selected_datasets[s][f].loc[:,fields], model)) for f in selected_datasets[s]}
                              for s in selected_datasets.keys()
                        }
     return labeled_datasets

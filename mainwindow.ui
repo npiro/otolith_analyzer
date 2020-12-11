@@ -276,7 +276,7 @@
           <x>20</x>
           <y>70</y>
           <width>181</width>
-          <height>531</height>
+          <height>261</height>
          </rect>
         </property>
         <column>
@@ -320,6 +320,21 @@
         <column>
          <property name="text">
           <string>Fields</string>
+         </property>
+        </column>
+       </widget>
+       <widget class="QTreeWidget" name="labelElementsTreeWidget">
+        <property name="geometry">
+         <rect>
+          <x>20</x>
+          <y>340</y>
+          <width>181</width>
+          <height>251</height>
+         </rect>
+        </property>
+        <column>
+         <property name="text">
+          <string>Elements</string>
          </property>
         </column>
        </widget>

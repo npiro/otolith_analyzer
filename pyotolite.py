@@ -8,8 +8,8 @@ import pyqtgraph as pg
 
 import sys, os
 from datasets import Datasets
-from gui import PandasModel, TableModel, get_checked_items, plot_labeled_dataset, plot_labeled_dataset_field
-from labelling import predict_labels_on_selected_datasets
+from gui import PandasModel, TableModel, get_checked_items, get_checked_items_in_subtree, plot_labeled_dataset, plot_labeled_dataset_field
+from labelling import predict_labels_on_selected_datasets, load_model
 
 def load_dir_dialog(widget, text_box):
     # get download_path from lineEdit
@@ -57,6 +57,7 @@ class StandardItem(QStandardItem):
         self.setText(txt)
         self.is_file = is_file
 
+
 class Ui(QtWidgets.QMainWindow):
     def __init__(self):
         super(Ui, self).__init__()
@@ -65,12 +66,18 @@ class Ui(QtWidgets.QMainWindow):
         self.load_dir_but.clicked.connect(lambda: load_dir_dialog(self, self.load_dir_lineEdit))
         self.load_drift_file_but.clicked.connect(lambda: load_file_dialog(self, self.load_drift_file_lineEdit))
         self.load_calibration_file_but.clicked.connect(lambda: load_file_dialog(self, self.load_calibration_file_lineEdit))
+
+        def select_model_path(self, line_edit):
+            self.model = None
+            return load_dir_dialog(self, line_edit)
         self.select_model_path_but.clicked.connect(
-            lambda: load_file_dialog(self, self.model_path_lineEdit))
+            lambda: select_model_path(self, self.model_path_lineEdit))
+
         self.load_data.clicked.connect(self.load_data_func)
         self.label_data_but.clicked.connect(self.label_data_func)
         self.load_prefix_tables()
         self.datasets = Datasets()
+        self.model = None
 
         self.labeled_dataset = None
         self.original_dataset = None
@@ -111,6 +118,8 @@ class Ui(QtWidgets.QMainWindow):
 
         self.sessionTreeWidget.doubleClicked.connect(self.onSessionTreeDoubleClick)
 
+
+
         # Load calibration data
         calibration_path = self.load_calibration_file_lineEdit.text()
         self.datasets.read_calibration_data(calibration_path)
@@ -123,6 +132,18 @@ class Ui(QtWidgets.QMainWindow):
         # Load datasets
         datasets_path = self.load_dir_lineEdit.text()
         self.datasets.read_datasets(datasets_path)
+
+        # Load elements tree
+        tree = self.labelElementsTreeWidget
+        tree.clear()
+        elements = [e for e in next(iter(self.datasets.get_datasets().values())).columns if e.lower() not in ['time', 'delay']]
+        for e in elements:
+            item = QTreeWidgetItem(tree)
+            item.setText(0, e)
+            item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
+            if e.lower()[:4] in ['mg24', 'ca43', 'ca44']: item.setCheckState(0, Qt.Checked)
+            else: item.setCheckState(0, Qt.Unchecked)
+
 
     def onSessionTreeDoubleClick(self,index):
         item = self.sessionTreeWidget.selectedIndexes()[0]
@@ -138,9 +159,12 @@ class Ui(QtWidgets.QMainWindow):
 
 
     def label_data_func(self):
-        selected_datasets = get_checked_items(self.sessionTreeWidget)
+        selected_datasets = get_checked_items_in_subtree(self.sessionTreeWidget)
+        selected_elements = get_checked_items(self.labelElementsTreeWidget)
         model_path = self.model_path_lineEdit.text()
-        self.datasets.labeled_datasets = predict_labels_on_selected_datasets(self.datasets, selected_datasets, model_path)
+        if not self.model:
+            self.model = load_model(model_path)
+        self.datasets.labeled_datasets = predict_labels_on_selected_datasets(self.datasets, selected_datasets, selected_elements, self.model)
 
         # Fill labeled session tree
 
