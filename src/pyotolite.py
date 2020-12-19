@@ -1,15 +1,13 @@
 from PyQt5 import QtWidgets, uic
 from PyQt5.QtCore import QDir, Qt
 from PyQt5.QtWidgets import QFileDialog, QTableWidgetItem, QTreeWidgetItem
-from PyQt5.Qt import QStandardItemModel, QStandardItem
+from PyQt5.Qt import QStandardItem
 from PyQt5.QtGui import QFont, QColor
-from pyqtgraph import PlotWidget
-import pyqtgraph as pg
 
 import sys, os
-from datasets import Datasets
-from gui import PandasModel, TableModel, get_checked_items, get_checked_items_in_subtree, plot_labeled_dataset, plot_labeled_dataset_field
-from labelling import predict_labels_on_selected_datasets, load_model
+from src.datasets import Datasets
+from src.gui import PandasModel, get_checked_items, get_checked_items_in_subtree, plot_labeled_dataset, plot_labeled_dataset_field
+from src.labelling import predict_labels_on_selected_datasets, load_model
 
 def load_dir_dialog(widget, text_box):
     # get download_path from lineEdit

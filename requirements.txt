@@ -1,0 +1,6 @@
+pandas
+pip-chill
+pyqt5
+pyqtgraph
+scipy
+tensorflow
