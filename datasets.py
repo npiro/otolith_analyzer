@@ -8,10 +8,16 @@ def read_data_from_csv(path, sep=";"):
 def read_massspec_data(path):
     extension = os.path.splitext(path)[1].lower()
     if extension == ".txt":
-        header = pd.read_table(path, sep='\t', nrows=1, header=None)
+        header = pd.read_table(path,
+                               sep='\t',
+                               nrows=1,
+                               header=None)
         colnames = header.loc[:, 1:].values[0].tolist()
         colnames = ['time'] + colnames
-        df = pd.read_table(path, sep='\t', skiprows=[0, 1, 2, 3, 4], index_col=False,
+        df = pd.read_table(path,
+                           sep='\t',
+                           skiprows=[0, 1, 2, 3, 4],
+                           index_col=False,
                            header=None)
         df = df.loc[:, 0:15]
         df.columns = colnames

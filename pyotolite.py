@@ -1,15 +1,15 @@
-from PyQt5 import QtWidgets, uic
+from PyQt5 import uic, QtWidgets
 from PyQt5.QtCore import QDir, Qt
 from PyQt5.QtWidgets import QFileDialog, QTableWidgetItem, QTreeWidgetItem
 from PyQt5.Qt import QStandardItemModel, QStandardItem
 from PyQt5.QtGui import QFont, QColor
-from pyqtgraph import PlotWidget
-import pyqtgraph as pg
+#from pyqtgraph import PlotWidget
+#import pyqtgraph as pg
 
 import sys, os
 from datasets import Datasets
 from gui import PandasModel, TableModel, get_checked_items, get_checked_items_in_subtree, plot_labeled_dataset, plot_labeled_dataset_field
-from labelling import predict_labels_on_selected_datasets, load_model
+from labelling import predict_labels_on_selected_datasets, load_model, auto_select_elements
 
 def load_dir_dialog(widget, text_box):
     # get download_path from lineEdit
@@ -118,8 +118,6 @@ class Ui(QtWidgets.QMainWindow):
 
         self.sessionTreeWidget.doubleClicked.connect(self.onSessionTreeDoubleClick)
 
-
-
         # Load calibration data
         calibration_path = self.load_calibration_file_lineEdit.text()
         self.datasets.read_calibration_data(calibration_path)
@@ -137,11 +135,14 @@ class Ui(QtWidgets.QMainWindow):
         tree = self.labelElementsTreeWidget
         tree.clear()
         elements = [e for e in next(iter(self.datasets.get_datasets().values())).columns if e.lower() not in ['time', 'delay']]
+        # automatically determine top elements to select for labelling
+        data = next(iter(self.datasets.get_datasets().values()))
+        selected_elements = auto_select_elements(data, num_to_select = 5)
         for e in elements:
             item = QTreeWidgetItem(tree)
             item.setText(0, e)
             item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
-            if e.lower()[:4] in ['mg24', 'ca43', 'ca44']: item.setCheckState(0, Qt.Checked)
+            if e in selected_elements: item.setCheckState(0, Qt.Checked)
             else: item.setCheckState(0, Qt.Unchecked)
 
 
@@ -164,7 +165,13 @@ class Ui(QtWidgets.QMainWindow):
         model_path = self.model_path_lineEdit.text()
         if not self.model:
             self.model = load_model(model_path)
-        self.datasets.labeled_datasets = predict_labels_on_selected_datasets(self.datasets, selected_datasets, selected_elements, self.model)
+
+        select_per_sample = self.perSampleSelectionCheckBox.isChecked()
+        self.datasets.labeled_datasets = predict_labels_on_selected_datasets(self.datasets,
+                                                                             selected_datasets,
+                                                                             selected_elements,
+                                                                             self.model,
+                                                                             select_per_sample)
 
         # Fill labeled session tree
 
@@ -190,6 +197,11 @@ class Ui(QtWidgets.QMainWindow):
         tree.setHeaderLabel("Session")
 
         self.labeledSessionTreeWidget.doubleClicked.connect(self.onLabeledSessionTreeDoubleClick)
+
+
+        import pickle
+        with open("labeled_dataset.pkl", "wb") as f:
+            pickle.dump(self.datasets.get_labeled_datasets(), f)
 
     def onLabeledSessionTreeDoubleClick(self,index):
         item = self.labeledSessionTreeWidget.selectedIndexes()[0]

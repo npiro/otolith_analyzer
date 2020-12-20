@@ -3,16 +3,82 @@ import scipy as sp
 from scipy import interpolate
 import tensorflow as tf
 import tensorflow.keras
+from sklearn.cluster import SpectralClustering, DBSCAN
+from sklearn.preprocessing import StandardScaler
 
-def predict_labels_on_selected_datasets(datasets, selected_datasets, selected_elements, model):
+def auto_select_elements(data, num_to_select = 5):
+    def standardize_data(X):
+        ss = StandardScaler()
+        return ss.fit_transform(X)
+
+    def remove_outliers(X):
+        """
+        Remove outliers
+        df: dataframe
+        c: column to apply to
+        """
+
+        db = DBSCAN(eps=0.5)
+        db_fit = db.fit(X)
+        mask = db_fit.labels_ != -1
+
+        return X[mask]
+
+    def compute_range_ratio(X):
+        sc = SpectralClustering(n_clusters=3, affinity='nearest_neighbors')
+        sc_fit = sc.fit(X)
+        pp = sc_fit.labels_
+        x0 = X[pp == 0][:, 0]
+        x1 = X[pp == 1][:, 0]
+        x2 = X[pp == 2][:, 0]
+        x_range = max(X[:, 0]) - min(X[:, 0])
+        return (max(x0) - min(x0)) / x_range + (max(x1) - min(x1)) / x_range + (max(x2) - min(x2)) / x_range
+
+    def compute_mean_distance(X):
+        mean = X.mean()
+        upper = X[X > mean]
+        lower = X[X <= mean]
+        return (upper.mean() - lower.mean()) / upper.std()
+
+    def compute_metric(df, c, threshold=1.05):
+        X = df[["time", c]].values
+        X = standardize_data(X)
+        X = remove_outliers(X)
+
+        rr = compute_range_ratio(X)
+        dd = compute_mean_distance(X)
+
+        metric = dd * int(rr < threshold)
+        return metric
+
+    df = data
+    cols = [c for c in df.columns if c.lower() not in ['time','delay']]
+    metrics = {c: compute_metric(df, c) for c in cols}
+    order = sorted(metrics, key=metrics.get, reverse=True)
+    return order[:num_to_select]
+
+def predict_labels_on_selected_datasets(datasets, selected_datasets, selected_elements, model, select_per_sample = False):
     selected_datasets = {s:
                             {f:datasets.get_dataset(f) for f in selected_datasets[s]}
                              for s in selected_datasets.keys() if len(selected_datasets[s]) > 0
                          }
-    fields = ["time"]+selected_elements
+
+
+    if select_per_sample:
+        fields = {s:
+                     {f:["time"]+auto_select_elements(datasets.get_dataset(f), num_to_select = 5) for f in selected_datasets[s]}
+                      for s in selected_datasets.keys() if len(selected_datasets[s]) > 0
+                 }
+    else:
+        fields = {s:
+                      {f: ["time"]+selected_elements for f in
+                       selected_datasets[s]}
+                  for s in selected_datasets.keys() if len(selected_datasets[s]) > 0
+                  }
+
     labeled_datasets = {s:
-                            {f: (prepare_input_data(selected_datasets[s][f].loc[:,fields]),
-                                 predict(selected_datasets[s][f].loc[:,fields], model)) for f in selected_datasets[s]}
+                            {f: (prepare_input_data_v2(selected_datasets[s][f].loc[:,fields[s][f]]),
+                                 predict(selected_datasets[s][f].loc[:,fields[s][f]], model)) for f in selected_datasets[s]}
                              for s in selected_datasets.keys()
                        }
     return labeled_datasets
